@@ -9,11 +9,16 @@ class BackgroundJobRunner
 {
     protected AllowedClassMethodValidator $classValidator;
     protected ClassMethodParamValidator $paramValidator;
+    protected JobExecutionLogger $jobExecutionLogger;
 
-    public function __construct(AllowedClassMethodValidator $classValidator, ClassMethodParamValidator $paramValidator)
-    {
+    public function __construct(
+        AllowedClassMethodValidator $classValidator,
+        ClassMethodParamValidator $paramValidator,
+        JobExecutionLogger $jobExecutionLogger
+    ) {
         $this->classValidator = $classValidator;
         $this->paramValidator = $paramValidator;
+        $this->jobExecutionLogger = $jobExecutionLogger;
     }
 
     /**
@@ -50,23 +55,10 @@ class BackgroundJobRunner
             call_user_func_array([$classInstance, $methodName], $parameters);
 
             // Log success
-            Log::info("Background job executed successfully.", [
-                'class' => $className,
-                'method' => $methodName,
-                'parameters' => $parameters,
-                'status' => 'success',
-                'timestamp' => now(),
-            ]);
+            $this->jobExecutionLogger->logSuccess($className, $methodName, $parameters);
         } catch (Exception $e) {
             // Log failure
-            Log::error("Background job execution failed.", [
-                'class' => $className,
-                'method' => $methodName,
-                'parameters' => $parameters,
-                'status' => 'failed',
-                'error' => $e->getMessage(),
-                'timestamp' => now(),
-            ]);
+            $this->jobExecutionLogger->logFailure($className, $methodName, $e->getMessage());
 
             // Re-throw the exception
             throw $e;
