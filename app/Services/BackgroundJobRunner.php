@@ -15,16 +15,15 @@ class BackgroundJobRunner
         AllowedClassMethodValidator $classValidator,
         ClassMethodParamValidator $paramValidator,
         JobExecutionLogger $jobExecutionLogger,
-        int $maxRetries = 3  // Default max retry count is 3
-
+        int $maxRetries = null
     ) {
         $this->classValidator = $classValidator;
         $this->paramValidator = $paramValidator;
         $this->jobExecutionLogger = $jobExecutionLogger;
-        $this->maxRetries = $maxRetries;
+        $this->maxRetries = $maxRetries ?? config('background_jobs_settings.max_retries', 3);
     }
 
- /**
+    /**
      * Run the given class and method with parameters, including retry functionality.
      *
      * @param string $className
@@ -33,11 +32,14 @@ class BackgroundJobRunner
      * @return void
      * @throws Exception
      */
-    public function run(string $className, string $methodName, array $parameters = [])
+    public function runJob(string $className, string $methodName, array $parameters = [])
     {
         $retryCount = 0;
 
         while ($retryCount <= $this->maxRetries) {
+
+            // Log the job as running
+            $this->jobExecutionLogger->logJobExecutionStatus($className, $methodName, 'running', $parameters);
             try {
                 // Validate the class and method
                 $this->classValidator->validate($className, $methodName);
@@ -79,7 +81,9 @@ class BackgroundJobRunner
                 }
 
                 // Delay between retries 
-                sleep(2);  // Add a delay of 2 seconds between retries 
+                $defaultDelay = config('background_jobs_settings.default_delay', 0);
+
+                sleep($defaultDelay);  // Add a delay between retries 
             }
         }
     }

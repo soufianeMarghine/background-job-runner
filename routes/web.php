@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\JobController;
+use App\Http\Controllers\JobTestController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -9,4 +9,4 @@ Route::get('/', function () {
 
 
 
-Route::get('/run-job', [JobController::class, 'runJob']);
+Route::get('/run-job', [JobTestController::class, 'testJobs']);
