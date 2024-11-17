@@ -12,7 +12,8 @@ class AllowedClassMethodValidator
      * @var array
      */
     protected array $allowedClasses = [
-     
+        'App\\Jobs\\SendEmailJob' => ['execute'],
+
     ];
 
     /**
