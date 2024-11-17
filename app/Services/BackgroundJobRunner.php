@@ -7,11 +7,13 @@ use Illuminate\Support\Facades\Log;
 
 class BackgroundJobRunner
 {
-    protected AllowedClassMethodValidator $validator;
+    protected AllowedClassMethodValidator $classValidator;
+    protected ClassMethodParamValidator $paramValidator;
 
-    public function __construct(AllowedClassMethodValidator $validator)
+    public function __construct(AllowedClassMethodValidator $classValidator, ClassMethodParamValidator $paramValidator)
     {
-        $this->validator = $validator;
+        $this->classValidator = $classValidator;
+        $this->paramValidator = $paramValidator;
     }
 
     /**
@@ -27,7 +29,10 @@ class BackgroundJobRunner
     {
         try {
             // Validate the class and method
-            $this->validator->validate($className, $methodName);
+            $this->classValidator->validate($className, $methodName);
+
+            // Validate method parameters
+            $this->paramValidator->validate($className, $methodName, $parameters);
 
             // Instantiate the class
             if (!class_exists($className)) {
