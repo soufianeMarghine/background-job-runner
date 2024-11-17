@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\Log;
 
 class BackgroundJobRunner
 {
+    protected AllowedClassMethodValidator $validator;
+
+    public function __construct(AllowedClassMethodValidator $validator)
+    {
+        $this->validator = $validator;
+    }
+
     /**
      * Run the given class and method with parameters.
      *
@@ -19,15 +26,17 @@ class BackgroundJobRunner
     public function run(string $className, string $methodName, array $parameters = [])
     {
         try {
-            // Validate class existence
+            // Validate the class and method
+            $this->validator->validate($className, $methodName);
+
+            // Instantiate the class
             if (!class_exists($className)) {
                 throw new Exception("Class $className does not exist.");
             }
 
-            // Instantiate the class
             $classInstance = new $className();
 
-            // Validate method existence
+            // Validate the method existence
             if (!method_exists($classInstance, $methodName)) {
                 throw new Exception("Method $methodName does not exist in class $className.");
             }
