@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use Exception;
@@ -23,68 +22,54 @@ class BackgroundJobRunner
         $this->maxRetries = $maxRetries ?? config('background_jobs_settings.max_retries', 3);
     }
 
-    /**
-     * Run the given class and method with parameters, including retry functionality.
-     *
-     * @param string $className
-     * @param string $methodName
-     * @param array $parameters
-     * @return void
-     * @throws Exception
-     */
     public function runJob(string $className, string $methodName, array $parameters = [])
     {
         $retryCount = 0;
-
+    
         while ($retryCount <= $this->maxRetries) {
-
-            // Log the job as running
             $this->jobExecutionLogger->logJobExecutionStatus($className, $methodName, 'running', $parameters);
+    
             try {
-                // Validate the class and method
+                // Perform class, method, and parameter validation
                 $this->classValidator->validate($className, $methodName);
-
-                // Validate method parameters
                 $this->paramValidator->validate($className, $methodName, $parameters);
-
-                // Instantiate the class
-                if (!class_exists($className)) {
-                    throw new Exception("Class $className does not exist.");
-                }
-
+    
+                // Create an instance of the class and invoke the method
                 $classInstance = new $className();
-
-                // Validate the method existence
-                if (!method_exists($classInstance, $methodName)) {
-                    throw new Exception("Method $methodName does not exist in class $className.");
-                }
-
-                // Call the method with parameters
+    
                 call_user_func_array([$classInstance, $methodName], $parameters);
-
-                // Log success
+    
+                // Log success and exit loop
                 $this->jobExecutionLogger->logSuccess($className, $methodName, $parameters);
-
-                // Exit the loop on success
-                break;
+                return; // Exit the loop upon successful execution
             } catch (Exception $e) {
+                $retryCount++;
+    
                 // Log failure and retry attempt
                 $this->jobExecutionLogger->logFailure($className, $methodName, $e->getMessage());
-                $this->jobExecutionLogger->logRetry($className, $methodName, $retryCount + 1);
-
-                // Increment retry count
-                $retryCount++;
-
-                // If maximum retries are reached, throw the exception
+                $this->jobExecutionLogger->logRetry($className, $methodName, $retryCount);
+    
                 if ($retryCount > $this->maxRetries) {
-                    throw new Exception("Job failed after $retryCount retries: " . $e->getMessage());
+                    // Log and rethrow the final exception
+                    $this->jobExecutionLogger->logFailure(
+                        $className,
+                        $methodName,
+                        "Final failure after $this->maxRetries retries: " . $e->getMessage()
+                    );
+                    throw new Exception(
+                        "Job failed after $this->maxRetries retries. Error: " . $e->getMessage(),
+                        $e->getCode(),
+                        $e // Preserve the original exception
+                    );
                 }
-
-                // Delay between retries 
+    
+                // Retry delay
                 $defaultDelay = config('background_jobs_settings.default_delay', 0);
-
-                sleep($defaultDelay);  // Add a delay between retries 
+                if ($defaultDelay > 0) {
+                    sleep($defaultDelay);
+                }
             }
         }
     }
+    
 }
