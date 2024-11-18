@@ -11,7 +11,7 @@ class JobExecutionLogger
     public function __construct()
     {
         //log file path
-        $this->logFile = storage_path('logs/background_jobs.log');
+        $this->logFile = storage_path('logs/background_jobs_errors.log');
     }
 
     /**

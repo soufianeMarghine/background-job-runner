@@ -1,66 +1,164 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Here is the final version of your README with the suggested improvements:
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+---
 
-## About Laravel
+# Laravel Background Job Runner
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This project implements a custom background job runner system for Laravel, allowing you to execute PHP classes and methods in the background outside of Laravel's built-in queue system.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
+- Execute PHP classes and methods in the background.
+- Support for job retries in case of failure.
+- Detailed job execution logs (success, failure, retry attempts).
+- Custom Artisan command for triggering jobs via the terminal.
+- Configurable retry attempts and job delays.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Requirements
+- PHP 8.0 or higher
+- Laravel 11.x or higher
 
-## Learning Laravel
+## Installation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Clone the Repository
+Clone this repository to your local machine:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```bash
+git clone https://github.com/soufianeMarghine/background-job-runner.git
+cd background-job-runner
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Install Dependencies
+Run the following command to install all dependencies:
 
-## Laravel Sponsors
+```bash
+composer install
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 3. Configure the Application
 
-### Premium Partners
+#### Configuring Allowed Job Classes
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+In the `config/background_jobs_settings.php` file, you can define the classes that are allowed to run as background jobs.
+
+Example:
+
+```php
+return [
+    // Define allowed classes that can be executed as background jobs.
+    'allowed_classes' => [
+        \App\Jobs\SendEmailJob::class => [
+            'execute', // List the allowed methods for this class
+        ],
+    ],
+
+    // Maximum number of retry attempts for failed jobs
+    'max_retries' => 3,
+
+    // Job delay (in seconds) before executing a job
+    'default_delay' => 0,
+];
+```
+
+This configuration ensures that only jobs defined in the `allowed_classes` array can be executed.
+
+### 4. Environment Configuration
+
+You can change the log file location, retry attempts, and delay configuration by modifying the configuration settings in `config/background_jobs_settings.php`.
+
+### 5. Running Jobs via Artisan Command
+
+You can execute background jobs via the terminal using the custom Artisan command:
+
+```bash
+php artisan job:run {class} {method} {parameters?*}
+```
+
+#### Example:
+
+To run a job that sends an email:
+
+```bash
+php artisan job:run App\Jobs\SendEmailJob execute ["email@example.com"]
+```
+
+This will run the `SendEmailJob` class's `execute` method and pass the email address as a parameter.
+
+### 6. Job Logs
+
+All job execution results (success, failure, retries) are logged in the `storage/logs/background_jobs_errors.log` file. The log file will contain detailed information about each job's execution status, retry attempts, and errors.
+
+Example log entries:
+
+```json
+{
+    "class": "App\\Jobs\\SendEmailJob",
+    "method": "execute",
+    "status": "running",
+    "parameters": ["email@example.com", "hello"],
+    "timestamp": "2024-11-18T02:38:45.954170Z",
+    "retryCount": 0,
+    "error": null
+}
+{
+    "class": "App\\Jobs\\SendEmailJob",
+    "method": "execute",
+    "status": "success",
+    "parameters": ["email@example.com", "hello"],
+    "timestamp": "2024-11-18T02:38:45.958936Z",
+    "retryCount": 0,
+    "error": null
+}
+{
+    "class": "App\\Jobs\\NonExistentJob",
+    "method": "execute",
+    "status": "failed",
+    "parameters": [],
+    "timestamp": "2024-11-18T02:38:45.961850Z",
+    "retryCount": 0,
+    "error": "Class 'App\\Jobs\\NonExistentJob' does not exist."
+}
+```
+
+To view logs, run:
+
+```bash
+tail -f storage/logs/background_jobs_errors.log
+```
+
+### 7. Retry Mechanism
+
+If a job fails, it will automatically be retried according to the configured retry attempts in `config/background_jobs_settings.php`.
+
+The retry delay is set in the configuration file and applies to all retries. After the maximum number of retries is reached, the job will be marked as failed and logged as such.
+
+### 8. Error Logs
+
+Any errors that occur during job execution are logged in the same `background_jobs_errors.log` file. If the job is retried, the retry count and status are also included in the logs. The error field will contain the error message for failed jobs.
+
+## Example Usage
+
+1. **Send an Email:**
+   To run a job that sends an email:
+
+```bash
+php artisan job:run App\Jobs\SendEmailJob execute ["email@example.com"]
+```
+
+2. **Run a Non-Existent Job:**
+   To run a job that doesn't exist (e.g., a job that will fail):
+
+```bash
+php artisan job:run App\Jobs\NonExistentJob execute []
+```
+
+This will log the error and retry attempts in the `background_jobs_errors.log` file.
+
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+To contribute to this project, please ensure you follow the PSR-12 coding standards. Submit your pull requests with a clear description of what changes have been made. If you're fixing a bug or adding a feature, ensure that you add tests to cover the changes.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-source and available under the MIT License. See the [LICENSE](LICENSE) file for more information.
+
